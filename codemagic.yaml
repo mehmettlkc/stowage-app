@@ -1,0 +1,38 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: stowage
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mehmettlkc.stowagecalc
+      vars:
+        APP_STORE_APPLE_ID: 6834672967
+      node: latest
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Bagimliliklari kur
+        script: npm install
+      - name: Web build
+        script: npm run build
+      - name: Capacitor sync
+        script: npx cap sync ios
+      - name: Imzalama ayari
+        script: xcode-project use-profiles
+      - name: Build numarasini artir
+        script: |
+          cd ios/App
+          agvtool new-version -all $(($(app-store-connect get-latest-app-store-build-number "$APP_STORE_APPLE_ID") + 1))
+      - name: IPA olustur
+        script: |
+          xcode-project build-ipa --workspace "ios/App/App.xcworkspace" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
